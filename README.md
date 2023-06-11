@@ -167,8 +167,8 @@ request on the GitHub repository.
 
 ### License
 
-The Service Call Adapter package is open-source software licensed under the MIT license.
+The GO Cally package is open-source software licensed under the MIT license.
 
 ### Credits
 
-The Service Call Adapter package is developed and maintained by Milad Roudgarian.
+The GO Cally package is developed and maintained by Milad Roudgarian.
