@@ -91,10 +91,6 @@ func newResponse(response *http.Response, err error) *Response {
 }
 
 func (r *Response) Response() (*http.Response, error) {
-	if r.response.Request != nil {
-		defer r.response.Body.Close()
-	}
-
 	return r.response, r.err
 }
 
@@ -115,6 +111,25 @@ func (r *Response) Payload() (payload map[string]interface{}, err error) {
 		"status":      r.response.Status,
 		"status_code": r.response.StatusCode,
 		"payload":     resResult,
+	}
+
+	return
+}
+
+func (r *Response) Entity(instance interface{}) (payload map[string]interface{}, err error) {
+	if r.response.Request != nil {
+		defer r.response.Body.Close()
+	}
+
+	err = json.NewDecoder(r.response.Body).Decode(instance)
+
+	if err != nil {
+		return
+	}
+
+	payload = map[string]interface{}{
+		"status":      r.response.Status,
+		"status_code": r.response.StatusCode,
 	}
 
 	return

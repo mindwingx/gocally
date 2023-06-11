@@ -8,7 +8,38 @@ import (
 	"testing"
 )
 
-func TestHttpCall_GetRequestSuccess(t *testing.T) {
+func TestHttpCall_SuccessRequestWithNotHandledResponseByResponseMethod(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Authorization", "Bearer some-enc-token")
+
+		response := map[string]interface{}{
+			"payload": "Request Dummy Payload",
+		}
+		json.NewEncoder(w).Encode(response)
+	}))
+
+	defer server.Close()
+
+	c, err := SetRequest().
+		WithUrl(server.URL).
+		Get().
+		Response()
+
+	defer c.Body.Close()
+
+	assert.NotNil(t, c)
+	assert.Nil(t, err)
+
+	var response map[string]interface{}
+
+	err = json.NewDecoder(c.Body).Decode(&response)
+
+	assert.Equal(t, "200 OK", c.Status)
+	assert.Equal(t, 200, c.StatusCode)
+	assert.Equal(t, "Request Dummy Payload", response["payload"])
+}
+
+func TestHttpCall_SuccessRequestWithHandledResponseByPayloadMethod(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Authorization", "Bearer some-enc-token")
 
@@ -22,18 +53,69 @@ func TestHttpCall_GetRequestSuccess(t *testing.T) {
 
 	defer server.Close()
 
-	c, _ := SetRequest().
-		SetUrl(server.URL).
+	c, err := SetRequest().
+		WithUrl(server.URL).
 		Get().
 		Payload()
 
 	assert.NotNil(t, c)
+	assert.Nil(t, err)
 	assert.Equal(t, "200 OK", c["status"])
 	assert.Equal(t, 200, c["status_code"])
 	assert.Equal(t, "Request Dummy Payload", c["payload"].(map[string]interface{})["payload"])
 }
 
-func TestHttpCall_NoSetUrlFailure(t *testing.T) {
+type CustomResponse struct {
+	Username    string `json:"username"`
+	IsSatisfied bool   `json:"is_satisfied"`
+}
+
+func TestHttpCall_SuccessRequestWithCustomStructForResponseOfEntityMethod(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Authorization", "Bearer some-enc-token")
+
+		response := map[string]interface{}{
+			"username":     "gocally_user",
+			"is_satisfied": true,
+		}
+
+		json.NewEncoder(w).Encode(response)
+	}))
+
+	defer server.Close()
+
+	var response CustomResponse
+
+	c, err := SetRequest().
+		WithUrl(server.URL).
+		Get().
+		Entity(&response)
+
+	assert.NotNil(t, c)
+	assert.Nil(t, err)
+	assert.Equal(t, "200 OK", c["status"])
+	assert.Equal(t, 200, c["status_code"])
+	assert.Equal(t, "gocally_user", response.Username)
+	assert.True(t, response.IsSatisfied)
+}
+
+func TestHttpCall_FailedRequestWithServerError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Simulate an error response
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+
+	defer server.Close()
+
+	// Make a request to the server
+	response, err := http.Get(server.URL)
+	assert.Nil(t, err)
+	assert.NotNil(t, response)
+	assert.Equal(t, 500, response.StatusCode)
+	assert.Equal(t, "500 Internal Server Error", response.Status)
+}
+
+func TestHttpCall_NoWithUrlFailure(t *testing.T) {
 	c, err := SetRequest().Get().Response()
 
 	assert.Error(t, err, "error: no URL is set")
@@ -53,7 +135,7 @@ func TestHttpCall_SetAuthorization(t *testing.T) {
 	defer server.Close()
 
 	c, err := SetRequest().
-		SetUrl(server.URL).
+		WithUrl(server.URL).
 		SetAuthorization("Bearer some-dummy-token").
 		Get().
 		Response()
@@ -76,7 +158,7 @@ func TestHttpCall_SetHeaderAndBulkHeaders(t *testing.T) {
 	defer server.Close()
 
 	c := SetRequest().
-		SetUrl(server.URL).
+		WithUrl(server.URL).
 		SetHeader("Header", "Value").
 		SetHeaderBulk(map[string]string{
 			"Header1": "Value1",
@@ -103,7 +185,7 @@ func TestHttpCall_SetDisableJsonHeaders(t *testing.T) {
 	defer server.Close()
 
 	c := SetRequest().
-		SetUrl(server.URL).
+		WithUrl(server.URL).
 		DisableJsonHeaders()
 
 	assert.NotNil(t, c)
@@ -128,7 +210,7 @@ func TestHttpCall_SetQueryParamAndBulkQueryParams(t *testing.T) {
 	defer server.Close()
 
 	c := SetRequest().
-		SetUrl(server.URL).
+		WithUrl(server.URL).
 		SetQueryParam("sort", "desc").
 		SetQueryParamBulk(map[string]string{
 			"page":  "1",
@@ -168,7 +250,7 @@ func TestHttpCall_SetBody(t *testing.T) {
 	defer server.Close()
 
 	c := SetRequest().
-		SetUrl(server.URL).
+		WithUrl(server.URL).
 		SetBody(map[string]interface{}{
 			"key": "value",
 		})
@@ -209,7 +291,7 @@ func TestHttpCall_SetFormAndFormBulk(t *testing.T) {
 	defer server.Close()
 
 	c := SetRequest().
-		SetUrl(server.URL).
+		WithUrl(server.URL).
 		SetForm("form-key", "value").
 		SetFormBulk(map[string]string{
 			"form-key1": "value1",
@@ -243,7 +325,7 @@ func TestHttpCall_GetRequestMethod(t *testing.T) {
 
 	defer server.Close()
 
-	c := SetRequest().SetUrl(server.URL)
+	c := SetRequest().WithUrl(server.URL)
 	response, err := c.Get().Response()
 
 	assert.Nil(t, err)
@@ -269,7 +351,7 @@ func TestHttpCall_PostRequestMethod(t *testing.T) {
 
 	defer server.Close()
 
-	c := SetRequest().SetUrl(server.URL)
+	c := SetRequest().WithUrl(server.URL)
 	response, err := c.Post().Response()
 
 	assert.Nil(t, err)
@@ -295,7 +377,7 @@ func TestHttpCall_PutRequestMethod(t *testing.T) {
 
 	defer server.Close()
 
-	c := SetRequest().SetUrl(server.URL)
+	c := SetRequest().WithUrl(server.URL)
 	response, err := c.Put().Response()
 
 	assert.Nil(t, err)
@@ -321,7 +403,7 @@ func TestHttpCall_DeleteRequestMethod(t *testing.T) {
 
 	defer server.Close()
 
-	c := SetRequest().SetUrl(server.URL)
+	c := SetRequest().WithUrl(server.URL)
 	response, err := c.Delete().Response()
 
 	assert.Nil(t, err)

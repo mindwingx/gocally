@@ -17,7 +17,7 @@ func SetRequest() *HttpCall {
 	}
 }
 
-func (h *HttpCall) SetUrl(url string) *HttpCall {
+func (h *HttpCall) WithUrl(url string) *HttpCall {
 	h.requestItems.url.payload = url
 	return h
 }
