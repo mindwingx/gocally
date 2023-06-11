@@ -137,7 +137,7 @@ response, error := request.
                     WithUrl("https://dummy-url.io/api").
                     Delete()
 ```
-#### Response is available with two methods :
+##### Response is available with three methods :
 
 `Response()` : this method returns exact Http Response with no changes. 
 
