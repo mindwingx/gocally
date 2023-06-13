@@ -3,21 +3,20 @@ package gocally
 import (
 	"encoding/json"
 	"net/http"
-	"net/url"
-	"time"
 )
 
 //request
 
 type RequestItems struct {
-	url     requestUrl
-	header  requestHeader
-	query   requestQuery
-	body    requestBody
-	form    requestForm
-	timeout requestTimeout
-	method  string
-	err     error
+	url       requestUrl
+	header    requestHeader
+	query     requestQuery
+	body      requestBody
+	form      requestForm
+	timeout   requestTimeout
+	transport requestTransport
+	method    string
+	err       error
 }
 
 func PrepareRequestItems() *RequestItems {
@@ -26,53 +25,26 @@ func PrepareRequestItems() *RequestItems {
 
 func (ri *RequestItems) SendRequest() (result HandlerInterface) {
 	evaluateRequestItems(ri)
+
 	if ri.err != nil {
 		return newResponse(&http.Response{}, ri.err)
 	}
 
-	//init request
-	timeout := ri.timeout.payload
+	client := &http.Client{}
+	handleHttpClient(ri, client)
 
-	if timeout == 0 {
-		timeout = 10
-	}
-
-	client := &http.Client{
-		Timeout: time.Second * time.Duration(timeout),
-	}
-
-	//set query params
 	if len(ri.query.payload) > 0 {
 		ri.url.payload += ri.query.payload
 	}
 
-	//prepare request instance
 	req, err := http.NewRequest(ri.method, ri.url.payload, &ri.body.payload)
 
 	if err != nil {
 		return
 	}
 
-	//set request payload as the form value
-	if len(ri.form.payload) > 0 {
-		form := url.Values{}
-
-		for formField, formValue := range ri.form.payload {
-			form.Add(formField, formValue)
-		}
-
-		req.PostForm = form
-	}
-
-	//set headers
-	if !ri.header.jsonHeaders {
-		req.Header.Set("Accept", "application/json")
-		req.Header.Set("Content-Type", "application/json")
-	}
-
-	for key, value := range ri.header.payload {
-		req.Header.Set(key, value)
-	}
+	handlePostForm(ri, req)
+	handleHeaders(ri, req)
 
 	response, err := client.Do(req)
 

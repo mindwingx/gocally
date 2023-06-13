@@ -118,8 +118,13 @@ func (h *HttpCall) SetFormBulk(payload map[string]string) *HttpCall {
 	return h
 }
 
-func (h *HttpCall) SetRequestTimeout(timeoutInSec int) *HttpCall {
+func (h *HttpCall) SetHttpTimeout(timeoutInSec int) *HttpCall {
 	h.requestItems.timeout.payload = timeoutInSec
+	return h
+}
+
+func (h *HttpCall) SetHttpTransport(transport *http.Transport) *HttpCall {
+	h.requestItems.transport.payload = transport
 	return h
 }
 

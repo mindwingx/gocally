@@ -1,5 +1,7 @@
 package gocally
 
+import "net/http"
+
 type HttpInterface interface {
 	WithUrl(string) *HttpCall
 	SetAuthorization(string) *HttpCall
@@ -11,9 +13,10 @@ type HttpInterface interface {
 	SetBody(any) *HttpCall
 	SetForm(string, string) *HttpCall
 	SetFormBulk(map[string]string) *HttpCall
-	SetRequestTimeout(int) *HttpCall
-	Get() (map[string]interface{}, error)
-	Post() (map[string]interface{}, error)
-	Put() (map[string]interface{}, error)
-	Delete() (map[string]interface{}, error)
+	SetHttpTimeout(int) *HttpCall
+	SetHttpTransport(*http.Transport) *HttpCall
+	Get() HandlerInterface
+	Post() HandlerInterface
+	Put() HandlerInterface
+	Delete() HandlerInterface
 }
