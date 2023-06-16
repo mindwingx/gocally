@@ -27,7 +27,7 @@ Prepare URL:
 ```go
 response, error := request.WithUrl("https://dummy-url.io/api")
 ```
-Set headers using the following code:
+Set header using the following code:
 
 ```go
 response, error := request.
@@ -77,12 +77,12 @@ response, error := request.
                    })
 ```
 
-Set the request body using any type, commonly a `map[string]interface{}`:
+Set the request body using type of `any`, commonly a `map[string]interface{}`:
 
 ```go
 response, error := request.
                     WithUrl("https://dummy-url.io/api").
-                    SetBody(map[string]string{
+                    SetBody(map[string]interface{
 						"field": "value"
 					})
 ```
